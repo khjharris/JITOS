@@ -7,16 +7,25 @@
 
 JITOS_STATUS run_bootloader_initialization_stm32f4(void){
 
-    if(!enable_flash_instruction_cache_stm32f4()){
-        // Some error
+    // Enable flash instruction cache if set
+    if(FLASH_INSTRUCTION_CACHE){
+        if(!enable_flash_instruction_cache_stm32f4()){
+            // Some error
+        }
     }
 
-    if(!enable_data_cache_stm32f4()){
-        // Some error
+    // Enable data cache if set
+    if(FLASH_DATA_CACHE){
+        if(!enable_flash_data_cache_stm32f4()){
+            // Some error
+        }
     }
 
-    if(!enable_flash_prefetch_buffer()){
-        // Some error
+    // Enable prefetch if set
+    if(FLASH_PREFETCH){
+        if(!enable_flash_prefetch_buffer()){
+            // Some error
+        }
     }
 
     // Perhaps set some priority?
@@ -53,3 +62,7 @@ JITOS_STATUS enable_flash_prefetch_buffer(void){
     SET_BIT(FLASH_ACCESS_CONTROL_REGISTER,FLASH_PREFETCH_EN);
 }
 
+JITOS_STATUS configure_NVIC_priority_grouping(uint32_t priority){
+    // Currently set no priority subgroups
+    NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+}

@@ -16,10 +16,7 @@
 
 // Target defines will be set in makefile
 #ifdef TARGET_STM32F446RE
-// LD2 is the designated LED at PA5 active high
-#define BOOTLOADER_LED_PIN "PA5"
-// 512kb of flash
-#define FLASH_SIZE 0x80000
+#include "stm32f4_boot.h"
 #endif
 
 void set_bootloader_indicator(void);
