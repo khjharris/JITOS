@@ -75,9 +75,9 @@
     +-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
        RES     RES     RES    DCRST   ICRST   DCEN    ICEN    PRFTEN   RES     RES     RES     RES  |----------- LATENCY -----------|
 */
-#define FLASH_INSTRUCTION_CACHE_EN (0x1UL << 0x9U)
-#define FLASH_DATA_CACHE_EN (0x1UL << 0x10U)
-#define FLASH_PREFETCH_EN (0x1UL << 0x8U)
+#define FLASH_INSTRUCTION_CACHE_EN (0x1UL << 9U)
+#define FLASH_DATA_CACHE_EN (0x1UL << 10U)
+#define FLASH_PREFETCH_EN (0x1UL << 8U)
 
 JITOS_STATUS enable_flash_instruction_cache_stm32f4(void);
 JITOS_STATUS enable_flash_data_cache_stm32f4(void);
@@ -121,7 +121,10 @@ JITOS_STATUS configure_NVIC_priority_grouping(uint32_t priority);
 
     Register map is not needed as CMSIS provides simple functionality for enabling and disabling and reading.
     CMSIS Function SysTick_Config() allows us to setup the interrupt period
+    MATH: SYSCORECLK / X = 
+*/
 
+JITOS_STATUS configure_SYSTICK(uint32_t number_of_ticks);
 
 
 
