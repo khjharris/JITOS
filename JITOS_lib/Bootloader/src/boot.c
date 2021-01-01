@@ -11,23 +11,29 @@
 #include "boot.h"
 
 void __JITOS_BOOT_GPIO_INIT(void){
-    
+
 }
 
 void set_bootloader_indicator(void){
 
 }
 
-uint8_t run_bootloader_initialization(void){
-
-
+JITOS_STATUS run_bootloader_initialization(void){
+    #ifdef TARGET_STM32F446RE
+        return run_bootloader_initialization_stm32f4();
+    #endif
 }
 
-uint8_t halt_boot(void){
-
+JITOS_STATUS halt_boot(void){
+    // Read FW flash pin for new sw to boot
 }
 
 void main(){
+
+    if(!run_bootloader_initialization()){
+        // Error during intialization
+    }
+
     set_bootloader_indicator();
 
     //Check if new FW image needs to be flashed/loaded
@@ -35,13 +41,5 @@ void main(){
         
     }
 
-    if(run_bootloader_initialization()){
-
-        kernel_jump();
-
-    } else{
-
-        //Set some error
-    }
-
+    kernel_jump();
 }

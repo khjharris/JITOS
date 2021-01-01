@@ -4,3 +4,4 @@
 */
 
 #include <stdint.h>
+#include "JITOS.h"

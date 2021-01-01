@@ -12,6 +12,7 @@
 */
 
 #include <stdint.h>
+#include "JITOS.h"
 
 // Target defines will be set in makefile
 #ifdef TARGET_STM32F446RE
@@ -22,6 +23,6 @@
 #endif
 
 void set_bootloader_indicator(void);
-uint8_t run_bootloader_initialization(void);
+JITOS_STATUS run_bootloader_initialization(void);
 void kernel_jump(void);
-uint8_t halt_boot(void);
+JITOS_STATUS halt_boot(void);
