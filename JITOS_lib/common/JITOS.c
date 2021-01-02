@@ -16,3 +16,18 @@ static void assert_failure_handler( char *file, int line )
 
 }
 
+void ITM_send( uint8_t ch )
+{
+
+	//Enable TRCENA
+	DEMCR |= ( 1 << 24);
+
+	//enable stimulus port 0
+	ITM_TRACE_EN |= ( 1 << 0);
+
+	// read FIFO status in bit [0]:
+	while(!(ITM_STIMULUS_PORT0 & 1));
+
+	//Write to ITM stimulus port0
+	ITM_STIMULUS_PORT0 = ch;
+}

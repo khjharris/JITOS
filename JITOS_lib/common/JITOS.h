@@ -13,11 +13,16 @@
 #define CLEAR_REG(REG)        ((REG) = (0x0))
 #define WRITE_REG(REG, VAL)   ((REG) = (VAL))
 #define READ_REG(REG)         ((REG))
+#define DMCR                  *(( volatile uint32_t* ) 0xE000EDFCU ) //Debug Exception control reg addr
+#define ITM_STIM_PORT         *(( volatile uint32_t* ) 0xE00000000 ) 
+#define ITM_TRACE_EN          *(( volatile uint32_t* ) 0xE00000E00 )
 
 
-
-// Function Definitions
+// Static Function Definitions
 static void assert_failure_handler( char *file, int line );
+
+// Public Function Definitions
+void ITM_send( uint8_t c );
 
 //Defining the assert macro
 #ifdef NDEBUG
