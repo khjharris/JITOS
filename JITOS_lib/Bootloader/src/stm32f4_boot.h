@@ -298,6 +298,103 @@ JITOS_STATUS configure_SYSTICK(uint32_t tick_priority, sysclock_tick_scaler_t cl
 
 #define RCC_BASE              (AHB1_PERIPHERAL_BASE_ADDR + 0x3800UL)
 
+/*  
+    RCC PLL configuration register (RCC_PLLCFGR):
+    Address offset: 0x04
+    Reset value: 0x2400 3010
+    Access: no wait state, word, half-word and byte access.
+    This register is used to configure the PLL clock outputs according to the formulas:
+    - f(VCO clock) = f(PLL clock input) × (PLLN / PLLM)
+    - f(PLL general clock output) = f(VCO clock) / PLLP
+    - f(USB OTG FS, SDIO) = f(VCO clock) / PLLQ
+    +-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+    |   31  |   30  |   29  |   28  |   27  |   26  |   25  |   24  |   23  |   22  |   21  |   20  |   19  |   18  |   17  |   16  |
+    +-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+       RES  |------ PLLR[2:0] ------|---------- PLLQ[3:0] ----------|  RES    PLLSRC   RES     RES     RES     RES  |-- PLLP[1:0] --|
+
+    +-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+    |   15  |   14  |   13  |   12  |   11  |   10  |   9   |   8   |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+    +-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+-------+
+       RES  |------------------------------- PLLN[8:0] -----------------------------|----------------- PLLM[5:0] -------------------|
+    
+    PLLM[5:0]: Division factor for the main PLL (PLL) input clock
+    Set and cleared by software to divide the PLL input clock before the VCO. These bits can be
+    written only when the PLL is disabled.
+    Caution: The software has to set these bits correctly to ensure that the VCO input frequency
+    ranges from 1 to 2 MHz. It is recommended to select a frequency of 2 MHz to limit
+    PLL jitter.
+    VCO input frequency = PLL input clock frequency / PLLM with 2 ≤ PLLM ≤ 63
+    000000: PLLM = 0, wrong configuration
+    000001: PLLM = 1, wrong configuration
+    000010: PLLM = 2    
+    000011: PLLM = 3
+    000100: PLLM = 4
+    ...
+    111110: PLLM = 62
+    111111: PLLM = 63
+
+    PLLN[8:0]: Main PLL (PLL) multiplication factor for VCO
+    Set and cleared by software to control the multiplication factor of the VCO. These bits can
+    be written only when PLL is disabled. Only half-word and word accesses are allowed to
+    write these bits.
+    Caution: The software has to set these bits correctly to ensure that the VCO output
+    frequency is between 100 and 432 MHz.
+    VCO output frequency = VCO input frequency × PLLN with 50 ≤ PLLN ≤ 432
+    000000000: PLLN = 0, wrong configuration
+    000000001: PLLN = 1, wrong configuration ...
+    000110010: PLLN = 50
+    ...
+    001100011: PLLN = 99
+    ...
+    110110000: PLLN = 432
+    110110001: PLLN = 433, wrong configuration ...
+    111111111: PLLN = 511, wrong configuration
+    Note: Between 50 and 99 multiplication factors are possible for VCO input frequency higher
+    than 1 MHz. However care must be taken to fulfill the minimum VCO output frequency
+    as specified above.
+
+    PLLP[1:0]: Main PLL (PLL) division factor for main system clock
+    Set and cleared by software to control the frequency of the general PLL output clock. These
+    bits can be written only if PLL is disabled.
+    Caution: The software has to set these bits correctly not to exceed 180 MHz on this domain.
+    PLL output clock frequency = VCO frequency / PLLP with PLLP = 2, 4, 6, or 8
+    00: PLLP = 2
+    01: PLLP = 4
+    10: PLLP = 6
+    11: PLLP = 8
+
+    PLLSRC: Main PLL(PLL) and audio PLL (PLLI2S) entry clock source
+    Set and cleared by software to select PLL and PLLI2S clock source. This bit can be written
+    only when PLL and PLLI2S are disabled.
+    0: HSI clock selected as PLL and PLLI2S clock entry
+    1: HSE oscillator clock selected as PLL and PLLI2S clock entry
+
+    PLLQ[3:0]: Main PLL (PLL) division factor for USB OTG FS, SDIOclocks
+    Set and cleared by software to control the frequency of USB OTG FS clock and the
+    SDIOclock. These bits should be written only if PLL is disabled.
+    Caution: The USB OTG FS requires a 48 MHz clock to work correctly. The SDIOneeds a
+    frequency lower than or equal to 48 MHz to work correctly.
+    USB OTG FS clock frequency = VCO frequency / PLLQ with 2 ≤ PLLQ ≤ 15
+    0000: PLLQ = 0, wrong configuration
+    0001: PLLQ = 1, wrong configuration
+    0010: PLLQ = 2
+    0011: PLLQ = 3
+    0100: PLLQ = 4
+    ...
+    1111: PLLQ = 15
+
+    PLLR[2:0]: Main PLL division factor for I2Ss, SAIs, SYSTEM and SPDIF-Rx clocks
+    Set and cleared by software to control the frequency of the clock. These bits should be
+    written only if PLL is disabled.
+    Clock frequency = VCO frequency / PLLR with 2 ≤ PLLR ≤ 7
+    000: PLLR = 0, wrong configuration
+    001: PLLR = 1, wrong configuration
+    010: PLLR = 2
+    011: PLLR = 3
+    ...
+    111: PLLR = 7
+*/
+
 // PLL struct to store configuration information
 typedef struct
 {
@@ -308,7 +405,7 @@ typedef struct
   uint32_t PLLP;       /* PLLP: Division factor for main system clock (SYSCLK). */
   uint32_t PLLQ;       /* PLLQ: Division factor for OTG FS, SDIO and RNG clocks. This parameter must be a number between Min_Data = 2 and Max_Data = 15 */
   uint32_t PLLR;       /* PLLR: PLL division factor for I2S, SAI, SYSTEM, SPDIFRX clocks. */
-} RCC_PLL_init;
+}  ;
 
 // Oscillator struct to store configuration information
 
@@ -320,13 +417,13 @@ typedef struct
     uint32_t HSIState; /* The new state of the HSI */
     uint32_t HSICalibrationValue; /* The HSI calibration trimming value (default is RCC_HSICALIBRATION_DEFAULT). This parameter must be a number between Min_Data = 0x00 and Max_Data = 0x1F*/
     uint32_t LSIState; /* The new state of the LSI */
-    RCC_PLL_init PLL; /* PLL structure parameters */
+    RCC_PLL_init_t PLL; /* PLL structure parameters */
 
-}RCC_oscilator_init;
+}RCC_oscilator_init_t;
 
 // Step 1: Enable APB2 clocks
 // RCC APB2 peripheral clock enable register (RCC_APB2ENR) follows the following structure
-typedef enum rcc_apb2_register_enum{
+typedef enum rcc_apb2_register_t_enum{
     bit0_TIM1EN = 0,
     bit1_TIM8EN = 1,
     // Bits two and three are reserved
@@ -347,23 +444,15 @@ typedef enum rcc_apb2_register_enum{
     // Bits 19-21 are reserved
     bit22_SAI1EN = 22,
     bit23_SAI2EN = 23,
-} rcc_apb2_register;
+} rcc_apb2_register_t;
 
-#define __HAL_RCC_SYSCFG_CLK_ENABLE()   do { \
-                                        __IO uint32_t tmpreg = 0x00U; \
-                                        SET_BIT(RCC->APB2ENR, RCC_APB2ENR_SYSCFGEN);\
-                                        /* Delay after an RCC peripheral clock enabling */ \
-                                        tmpreg = READ_BIT(RCC->APB2ENR, RCC_APB2ENR_SYSCFGEN);\
-                                        UNUSED(tmpreg); \
-                                          } while(0U)
-
-JITOS_STATUS RCC_APB2_ENABLE(rcc_apb2_register rcc_apb2_bit_to_set);
-JITOS_STATUS RCC_APB2_DISABLE(rcc_apb2_register rcc_apb2_bit_to_clear);
-JITOS_STATUS RCC_APB2_READ(rcc_apb2_register rcc_apb2_bit_to_read, volatile uint32_t read_output);
+JITOS_STATUS RCC_APB2_ENABLE(rcc_apb2_register_t rcc_apb2_bit_to_set);
+JITOS_STATUS RCC_APB2_DISABLE(rcc_apb2_register_t rcc_apb2_bit_to_clear);
+JITOS_STATUS RCC_APB2_READ(rcc_apb2_register_t rcc_apb2_bit_to_read, volatile uint32_t * read_output);
 
 // Step 2: Enable APB1 Clocks
 // RCC APB1 peripheral clock enable register (RCC_APB1ENR) follows the following structure
-typedef enum rcc_apb1_register_enum{
+typedef enum rcc_apb1_register_t_enum{
     bit0_TIM2EN = 0,
     bit1_TIM3EN = 1,
     bit2_TIM4EN = 2,
@@ -392,23 +481,89 @@ typedef enum rcc_apb1_register_enum{
     bit27CECEN = 27,
     bit28_PWREN = 28,
     bit29_DACEN = 29,
-}rcc_apb1_register;
+}rcc_apb1_register_t;
 
-#define NUM_RCC_APB1_CONFIG_BITS 26
+JITOS_STATUS RCC_APB1_ENABLE(rcc_apb1_register_t rcc_apb1_bit_to_set);
+JITOS_STATUS RCC_APB1_DISABLE(rcc_apb1_register_t rcc_apb1_bit_to_clear);
+JITOS_STATUS RCC_APB1_READ(rcc_apb1_register_t rcc_apb1_bit_to_read, volatile uint32_t * read_output);
 
-JITOS_STATUS RCC_APB1_ENABLE(rcc_apb1_register rcc_apb1_bit_to_set);
-JITOS_STATUS RCC_APB1_DISABLE(rcc_apb1_register rcc_apb1_bit_to_clear);
-JITOS_STATUS RCC_APB1_READ(rcc_apb1_register rcc_apb1_bit_to_read, uint32_t read_output);
+/*
+    Voltage Scaling -- Voltage regulator
 
-#define __HAL_RCC_PWR_CLK_ENABLE()     do { \
-                                        __IO uint32_t tmpreg = 0x00U; \
-                                        SET_BIT(RCC->APB1ENR, RCC_APB1ENR_PWREN);\
-                                        /* Delay after an RCC peripheral clock enabling */ \
-                                        tmpreg = READ_BIT(RCC->APB1ENR, RCC_APB1ENR_PWREN);\
-                                        UNUSED(tmpreg); \
-                                          } while(0U)
+    From Datasheet:
+    An embedded linear voltage regulator supplies all the digital circuitries except for the backup
+    domain and the Standby circuitry. The regulator output voltage is around 1.2 V.
+    This voltage regulator requires two external capacitors to be connected to two dedicated
+    pins, VCAP_1 and VCAP_2 available in all packages. Specific pins must be connected either to
+    VSS or VDD to activate or deactivate the voltage regulator. These pins depend on the
+    package.
+    When activated by software, the voltage regulator is always enabled after Reset. It works in
+    three different modes depending on the application modes (Run, Stop, or Standby mode).
 
+    **** RUN MODE ****
+    In Run mode, the main regulator supplies full power to the 1.2 V domain (core,
+    memories and digital peripherals). In this mode, the regulator output voltage (around
+    1.2 V) can be scaled by software to different voltage values (scale 1, scale 2, and scale
+    3 can be configured through VOS[1:0] bits of the PWR_CR register). The scale can be
+    modified only when the PLL is OFF and the HSI or HSE clock source is selected as
+    system clock source. The new value programmed is active only when the PLL is ON.
+    When the PLL is OFF, the voltage scale 3 is automatically selected.
+    The voltage scaling allows optimizing the power consumption when the device is
+    clocked below the maximum system frequency. After exit from Stop mode, the voltage scale 3 is automatically selected.(see Section 5.4.1: PWR power control register
+    (PWR_CR).
+    2 operating modes are available:
+    – Normal mode: The CPU and core logic operate at maximum frequency at a given
+    voltage scaling (scale 1, scale 2 or scale 3)
+    – Over-drive mode: This mode allows the CPU and the core logic to operate at a
+    higher frequency than the normal mode for the voltage scaling scale 1 and scale
+    2.
 
+    **** STOP MODE ****
+    In Stop mode: the main regulator or low-power regulator supplies a low-power voltage
+    to the 1.2V domain, thus preserving the content of registers and internal SRAM.
+    The voltage regulator can be put either in main regulator mode (MR) or in low-power
+    mode (LPR). Both modes can be configured by software as follows:
+    – Normal mode: the 1.2 V domain is preserved in nominal leakage mode. It is the
+    default mode when the main regulator (MR) or the low-power regulator (LPR) is
+    enabled.
+    – Low voltage mode.
+    – Under-drive mode: the 1.2 V domain is preserved in reduced leakage mode. This
+    mode is only available when the main regulator or the low-power regulator is in
+    low voltage mode (see Table 14).
+
+    **** STANDBY MODE ****
+    In Standby mode: the regulator is powered down. The content of the registers and
+    SRAM are lost except for the Standby circuitry and the backup domain.
+    Note: Over-drive and under-drive mode are not available when the regulator is bypassed.
+    For more details, refer to the voltage regulator section in the STM32F446xx datasheet.
+
+    PWR power control register (PWR_CR) - contains bits to control voltage scaling
+
+    Bits 15:14 VOS[1:0]: Regulator voltage scaling output selection
+    These bits control the main internal voltage regulator output voltage to achieve a trade-off
+    between performance and power consumption when the device does not operate at the
+    maximum frequency (refer to the STM32F446xx datasheet for more details).
+    These bits can be modified only when the PLL is OFF. The new value programmed is active
+    only when the PLL is ON. When the PLL is OFF, the voltage scale 3 is automatically
+    selected.
+    00: Reserved (Scale 3 mode selected)    
+    01: Scale 3 mode
+    10: Scale 2 mode
+    11: Scale 1 mode (reset value)
+*/
+
+// Contains the voltage scaling presets for this target the values
+typedef enum voltage_scale_enum{
+    /* Scale 1 mode(default value at reset): the maximum value of fHCLK is 168 MHz. It can be extended to 180 MHz by activating the over-drive mode. */
+    power_regulator_voltage_scale1 = PWR_CR_VOS,
+    /* Scale 2 mode: the maximum value of fHCLK is 144 MHz. It can be extended to 168 MHz by activating the over-drive mode. */
+    power_regulator_voltage_scale2 = PWR_CR_VOS_1,
+    /* Scale 3 mode: the maximum value of fHCLK is 120 MHz. */
+    power_regulator_voltage_scale3 = PWR_CR_VOS_0,
+}pwr_regulator_t;
+
+JITOS_STATUS configure_voltage_scaling_stm32f4(pwr_regulator_t voltage_scale);
+JITOS_STATUS configure_clocks_stm32f4(void);
 
 // LD2 is the designated LED at PA5 active high
 #define BOOTLOADER_LED_PIN "PA5"
