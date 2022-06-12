@@ -17,12 +17,15 @@
 #define ITM_STIM_PORT         *(( volatile uint32_t* ) 0xE00000000 ) 
 #define ITM_TRACE_EN          *(( volatile uint32_t* ) 0xE00000E00 )
 
+// Printf needs definition depending on debug/os status
+#define printf 
 
 // Static Function Definitions
 static void assert_failure_handler( char *file, int line );
 
 // Public Function Definitions
 void ITM_send( uint8_t c );
+void panic(const char * panic_message);
 
 //Defining the assert macro
 #ifdef NDEBUG

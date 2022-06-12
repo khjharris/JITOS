@@ -31,3 +31,12 @@ void ITM_send( uint8_t ch )
 	//Write to ITM stimulus port0
 	ITM_STIMULUS_PORT0 = ch;
 }
+
+void panic(const char * panic_message){
+	#ifdef debug
+	printf("PANIC: %s, ",  __FILE__, __LINE__, __func__);
+	#else
+	while(1){
+		
+	}
+}
